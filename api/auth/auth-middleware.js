@@ -1,27 +1,28 @@
 const User = require('../users/users-model')
-
+const bcrypt = require('bcryptjs')
+/* 
 function restricted(req, res, next){
     if(req.session.user){
         next()
     }else{
-        next({ status:401, message: 'You shall not pass'})
+       next({ status:401, message: 'You shall not pass'})
     }
 }
+*/
+//check if username unique
+async function checkUnique(req, res, next){
 
-async function checkUsernameFree(req, res, next){
-    try{
-        const users = await User.findBy({ username: req.body.username})
-            if(!users.length){
+        const {username} = req.body
+        const userExist = await User.findBy({username})
+            if(!userExist){
                 next()
             } else{
-                next({ status: 422, message: 'Username taken'})
+                next({ status: 401, message: 'Username taken'})
             }
-    } catch(err){
-        next(err)
-    }
+    
 
 } 
-
+/*
 function checkPasswordLength(req, res, next){
     if(!req.body.password || req.body.password.length<3){
         next({ status: 422, message: 'Password needs to be longer than 3 characters'})
@@ -29,30 +30,30 @@ function checkPasswordLength(req, res, next){
         next()
     }
 }
-function checkBody(req, res, next){
+*/
+//check if credential exitsts
+function checkCred(req, res, next){
     if(req.body.username && req.body.password){
         next()
     } else{
         next({ status: 401, message: 'username and password required'})
     }
 }
-async function checkUsernameExists(req, res, next){
-    try{
-        const users = await User.findBy({ username: req.body.username})
-            if(users.lenght){
-                req.user = users[0]
+async function checkValidInfo(req, res, next){
+
+        const user = await User.findBy({ username: req.body.username})
+            if(user && bcrypt.compareSync(req.body.password, user.password)){
+                req.user = user[0]
                 next()
             }else{
-                next({status: 422, message: 'invalid credentials'})
+                next({status: 401, message: 'invalid credentials'})
             }
-    }catch(err){
-        next(err)
-    }
+  
 }
 module.exports= {
-    restricted, 
-    checkUsernameFree, 
-    checkPasswordLength, 
-    checkBody,
-    checkUsernameExists
+   
+    checkUnique, 
+    //checkPasswordLength, 
+    checkValidInfo,
+    checkCred
 }

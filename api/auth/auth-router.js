@@ -1,17 +1,19 @@
 const router = require('express').Router();
-const { checkUsernameFree, checkPasswordLength, checkBody, checkUsernameExists } = require('./auth-middleware')
+const { checkUnique, checkValidInfo, checkCred } = require('./auth-middleware')
 const User = require('../users/users-model')
 const bcrypt = require('bcryptjs')
 const { JWT_SECRET, BCRYPT_ROUNDS } = require('../secrets/index');
 const jwt = require('jsonwebtoken')
 
 
-router.post('/register', checkUsernameFree, checkBody,(req, res, next) => {
+router.post('/register', 
+checkUnique, 
+checkCred, async (req, res, next) => {
   const {username, password} = req.body
   const hash = bcrypt.hashSync(password, BCRYPT_ROUNDS)
-  User.add({username, password: hash})
-    .then(saved=>{
-      res.status(201).json(saved)
+   await User.add({username, password: hash})
+    .then(newUser=>{
+      res.status(201).json(newUser)
     })
     .catch(next)
   });
@@ -42,16 +44,12 @@ router.post('/register', checkUsernameFree, checkBody,(req, res, next) => {
   */
 
 
-router.post('/login', checkUsernameExists, checkBody, (req, res, next) => {
-  const {password} = req.body
-  if(bcrypt.compareSync(password, req.user.password)){
+router.post('/login', checkCred, 
+checkValidInfo, 
+(req, res) => {
     const token = buildToken(req.user)
-    //req.session.user = req.user
-    res.json({ message: `Welcome ${req.user.username}`, token})
-  } else{
-    next({ status: 401, message: "invalid credentials" })
-  }
-
+    res.status(200).json({ message: `Welcome ${req.user.username}`, token})
+  
 });
   /*
     IMPLEMENT
